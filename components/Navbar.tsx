@@ -143,6 +143,23 @@ function SharedMegaMenu({
     activeItem.sections.length === 3 ? 'min-w-[640px]' :
     activeItem.sections.length === 2 ? 'min-w-[440px]' : 'min-w-[280px]'
 
+  // Track the previous trigger position so we know which direction the
+  // user moved. +1 = moved right, -1 = moved left, 0 = first open.
+  const prevCenterX = useRef(centerX)
+  const direction =
+    centerX > prevCenterX.current ?  1 :
+    centerX < prevCenterX.current ? -1 : 0
+  useEffect(() => { prevCenterX.current = centerX }, [centerX])
+
+  // Variants drive the inner content slide. Direction-aware via `custom`:
+  // when the user moves to a right-side trigger, the outgoing content
+  // exits left while incoming content enters from the right (and vice versa).
+  const contentVariants = {
+    enter:  (dir: number) => ({ opacity: 0, x: dir >= 0 ?  28 : -28 }),
+    center: {                   opacity: 1, x: 0 },
+    exit:   (dir: number) => ({ opacity: 0, x: dir >= 0 ? -28 :  28 }),
+  }
+
   return (
     <AnimatePresence>
       {activeItem && (
@@ -163,14 +180,26 @@ function SharedMegaMenu({
           }}
           exit={{ opacity: 0, y: -8, transition: { duration: 0.14 } }}
           style={{ left: 0, translateX: '-50%' }}
-          className={`absolute top-full mt-3 rounded-2xl border border-border bg-surface/98 backdrop-blur-xl shadow-xl p-6 z-50 w-max ${widthClass}`}
+          /* overflow-hidden so sliding content gets clipped at the panel
+             edge (looks like a carousel, not bleeding outside the panel). */
+          className={`absolute top-full mt-3 rounded-2xl border border-border bg-surface/98 backdrop-blur-xl shadow-xl p-6 z-50 w-max overflow-hidden ${widthClass}`}
         >
-          <AnimatePresence mode="wait">
+          {/* mode="popLayout" lets the outgoing content be position:absolute
+              while the incoming content takes its place in flow. Pure GPU
+              transforms (no layout reads) keep this smooth even on slower
+              hardware. */}
+          <AnimatePresence mode="popLayout" initial={false} custom={direction}>
             <motion.div
               key={activeItem.label}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1, transition: { duration: 0.14 } }}
-              exit={{    opacity: 0, transition: { duration: 0.10 } }}
+              custom={direction}
+              variants={contentVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{
+                x:       { type: 'spring', stiffness: 520, damping: 40, mass: 0.55 },
+                opacity: { duration: 0.18, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
+              }}
             >
               <MegaContent sections={activeItem.sections} />
             </motion.div>
