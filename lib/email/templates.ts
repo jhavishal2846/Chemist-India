@@ -66,6 +66,17 @@ export interface EnquiryPayload {
   ip?: string
 }
 
+export interface ContactPayload {
+  name: string
+  company: string
+  email: string
+  phone: string
+  reason: string
+  message: string
+  submittedAt: Date
+  ip?: string
+}
+
 export interface PartnerPayload {
   name: string
   company: string
@@ -433,6 +444,130 @@ export function partnerAckHtml(p: PartnerPayload): string {
     `Thanks ${p.name.split(' ')[0] || p.name}, our partnerships team will be in touch within 2 business days.`,
     body,
   )
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Contact — internal notification                                           */
+/* -------------------------------------------------------------------------- */
+
+export function contactInternalSubject(p: ContactPayload): string {
+  const who = p.company || p.name
+  return `New Contact Message — ${p.reason || 'General'} — ${who}`
+}
+
+export function contactInternalHtml(p: ContactPayload): string {
+  const body = `
+    <p style="margin:0 0 6px;font-size:12px;color:${BRAND.cta};font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">New Contact Message</p>
+    <h1 style="margin:0 0 24px;font-size:22px;line-height:1.3;color:${BRAND.ink};">${esc(p.reason || 'General')} &mdash; ${esc(p.company || p.name)}</h1>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
+      ${row('Name', p.name)}
+      ${row('Company', p.company)}
+      ${row('Email', p.email)}
+      ${row('Phone', p.phone)}
+      ${row('Reason', p.reason)}
+      ${row('Submitted', fmtDate(p.submittedAt))}
+      ${p.ip ? row('Source IP', p.ip) : ''}
+    </table>
+
+    <h2 style="margin:24px 0 4px;font-size:15px;color:${BRAND.ink};text-transform:uppercase;letter-spacing:0.04em;">Message</h2>
+    <div style="padding:14px 16px;background:${BRAND.bg};border:1px solid ${BRAND.border};border-radius:10px;font-size:14px;line-height:1.6;color:${BRAND.ink};white-space:pre-wrap;">${esc(p.message)}</div>
+
+    <p style="margin:28px 0 0;font-size:13px;color:${BRAND.inkMuted};line-height:1.6;">
+      Reply directly to this email to reach <strong>${esc(p.name)}</strong>. SLA: respond within 24 business hours.
+    </p>
+  `
+  return shell(
+    'New Contact Message — Chemist India',
+    `${p.reason || 'General'} from ${p.company || p.name}`,
+    body,
+  )
+}
+
+export function contactInternalText(p: ContactPayload): string {
+  const lines: string[] = []
+  lines.push('NEW CONTACT MESSAGE — Chemist India')
+  lines.push('====================================')
+  lines.push('')
+  lines.push(`Name:      ${p.name}`)
+  if (p.company) lines.push(`Company:   ${p.company}`)
+  lines.push(`Email:     ${p.email}`)
+  if (p.phone) lines.push(`Phone:     ${p.phone}`)
+  lines.push(`Reason:    ${p.reason}`)
+  lines.push(`Submitted: ${fmtDate(p.submittedAt)}`)
+  if (p.ip) lines.push(`Source IP: ${p.ip}`)
+  lines.push('')
+  lines.push('MESSAGE')
+  lines.push('-------')
+  lines.push(p.message)
+  lines.push('')
+  lines.push(`Reply directly to reach ${p.name} (${p.email}).`)
+  return lines.join('\n')
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Contact — auto-acknowledgement                                            */
+/* -------------------------------------------------------------------------- */
+
+export function contactAckSubject(_p: ContactPayload): string {
+  return `We received your message — Chemist India`
+}
+
+export function contactAckHtml(p: ContactPayload): string {
+  const body = `
+    <p style="margin:0 0 6px;font-size:12px;color:${BRAND.cta};font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">Message Received</p>
+    <h1 style="margin:0 0 16px;font-size:22px;line-height:1.3;color:${BRAND.ink};">Thank you, ${esc(p.name.split(' ')[0] || p.name)}.</h1>
+
+    <p style="margin:0 0 18px;font-size:15px;line-height:1.65;color:${BRAND.ink};">
+      We've received your message and our team will respond within
+      <strong>24 business hours</strong>. For urgent matters during business
+      days, expect a reply within 4 hours.
+    </p>
+
+    <div style="padding:16px 18px;background:${BRAND.bg};border:1px solid ${BRAND.border};border-radius:10px;margin:0 0 22px;">
+      <p style="margin:0 0 8px;font-size:11px;color:${BRAND.inkMuted};text-transform:uppercase;letter-spacing:0.06em;font-weight:700;">Your message</p>
+      <p style="margin:0 0 8px;font-size:14px;color:${BRAND.ink};line-height:1.6;">
+        <strong>Reason:</strong> ${esc(p.reason)}<br>
+        <strong>Submitted:</strong> ${esc(fmtDate(p.submittedAt))}
+      </p>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid ${BRAND.border};font-size:14px;color:${BRAND.ink};line-height:1.6;white-space:pre-wrap;">${esc(p.message)}</div>
+    </div>
+
+    <p style="margin:0 0 8px;font-size:14px;line-height:1.65;color:${BRAND.ink};">
+      If you need to add anything urgent, simply reply to this email &mdash;
+      it routes directly to our team.
+    </p>
+
+    <p style="margin:28px 0 0;font-size:13px;color:${BRAND.inkMuted};line-height:1.65;">
+      Warm regards,<br>
+      <strong style="color:${BRAND.ink};">The Chemist India Team</strong>
+    </p>
+  `
+  return shell(
+    'We received your message — Chemist India',
+    `Thanks ${p.name.split(' ')[0] || p.name}, we'll respond within 24 business hours.`,
+    body,
+  )
+}
+
+export function contactAckText(p: ContactPayload): string {
+  return [
+    `Thank you, ${p.name.split(' ')[0] || p.name}.`,
+    '',
+    `We've received your message and will respond within 24 business hours.`,
+    `For urgent matters during business days, expect a reply within 4 hours.`,
+    '',
+    `Reason:    ${p.reason}`,
+    `Submitted: ${fmtDate(p.submittedAt)}`,
+    '',
+    'Your message:',
+    p.message,
+    '',
+    `Reply to this email if you need to add anything urgent.`,
+    '',
+    `— The Chemist India Team`,
+    `https://chemistindia.com  ·  indiachemist@hotmail.com`,
+  ].join('\n')
 }
 
 export function partnerAckText(p: PartnerPayload): string {

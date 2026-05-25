@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { getQueue } from '@/lib/email/queue'
+import { after } from 'next/server'
 import { checkRate } from '@/lib/email/rate-limit'
+import { sendWithRetry } from '@/lib/email/send'
 import { MAIL_FROM, MAIL_TO_INTERNAL } from '@/lib/email/transporter'
 import {
   logoAttachment,
@@ -84,38 +85,41 @@ export async function POST(req: NextRequest) {
     ip,
   }
 
+  let logo
   try {
-    const queue = getQueue()
-    const logo = await logoAttachment()
-
-    queue.enqueue({
-      from: MAIL_FROM,
-      to: MAIL_TO_INTERNAL,
-      replyTo: `"${name}" <${email}>`,
-      subject: partnerInternalSubject(payload),
-      text: partnerInternalText(payload),
-      html: partnerInternalHtml(payload),
-      attachments: [logo],
-      headers: { 'X-Chemist-India-Form': 'partner' },
-    })
-
-    queue.enqueue({
-      from: MAIL_FROM,
-      to: `"${name}" <${email}>`,
-      replyTo: MAIL_TO_INTERNAL,
-      subject: partnerAckSubject(payload),
-      text: partnerAckText(payload),
-      html: partnerAckHtml(payload),
-      attachments: [logo],
-      headers: { 'X-Chemist-India-Form': 'partner-ack' },
-    })
+    logo = await logoAttachment()
   } catch (err) {
-    console.error('[partner] enqueue failed', err)
+    console.error('[partner] logo load failed', err)
     return NextResponse.json(
       { ok: false, error: 'Unable to submit right now. Please email us directly.' },
       { status: 500 },
     )
   }
+
+  after(async () => {
+    await Promise.all([
+      sendWithRetry({
+        from: MAIL_FROM,
+        to: MAIL_TO_INTERNAL,
+        replyTo: `"${name}" <${email}>`,
+        subject: partnerInternalSubject(payload),
+        text: partnerInternalText(payload),
+        html: partnerInternalHtml(payload),
+        attachments: [logo],
+        headers: { 'X-Chemist-India-Form': 'partner' },
+      }, 'partner-internal'),
+      sendWithRetry({
+        from: MAIL_FROM,
+        to: `"${name}" <${email}>`,
+        replyTo: MAIL_TO_INTERNAL,
+        subject: partnerAckSubject(payload),
+        text: partnerAckText(payload),
+        html: partnerAckHtml(payload),
+        attachments: [logo],
+        headers: { 'X-Chemist-India-Form': 'partner-ack' },
+      }, 'partner-ack'),
+    ])
+  })
 
   return NextResponse.json({ ok: true, queued: true }, { status: 202 })
 }
