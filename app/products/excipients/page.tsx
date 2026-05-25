@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { toSlug } from '@/lib/products/utils'
 import { excipientListing as excipients } from '@/lib/products/listings'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 const PER_PAGE = 15
 const listVariants = { hidden: {}, show: { transition: { staggerChildren: 0.04 } }, exit: {} }
@@ -20,6 +21,7 @@ export default function ExcipientsPage() {
   const [page, setPage] = useState(1)
   const paged = excipients.slice((page - 1) * PER_PAGE, page * PER_PAGE)
 
+  const router = useRouter()
   return (
     <>
       <PageHeader
@@ -46,19 +48,22 @@ export default function ExcipientsPage() {
                 <AnimatePresence mode="wait">
                   <motion.tbody key={page} variants={listVariants} initial="hidden" animate="show" exit="exit">
                     {paged.map(e => (
-                      <motion.tr key={e.cas + e.name} variants={rowVariants} whileHover={{ backgroundColor: 'rgba(0,180,216,0.04)' }}
-                        className="border-b border-border last:border-0">
+                      <motion.tr
+                        key={e.cas + e.name}
+                        variants={rowVariants}
+                        onClick={() => router.push(`/products/excipients/${toSlug(e.name)}`)}
+                        onKeyDown={(ev) => { if (ev.key === 'Enter') router.push(`/products/excipients/${toSlug(e.name)}`) }}
+                        tabIndex={0}
+                        role="link"
+                        className="border-b border-border last:border-0 cursor-pointer group transition-colors hover:bg-[rgba(90,163,68,0.06)]"
+                      >
                         <td className="px-6 py-4 font-medium text-ink">{e.name}</td>
                         <td className="px-6 py-4 font-mono text-xs text-ink-muted">{e.cas}</td>
                         <td className="px-6 py-4"><span className="px-2.5 py-0.5 text-xs font-semibold bg-primary-xlight text-primary rounded-full">{e.grade}</span></td>
-                        <td className="px-6 py-4 text-xs text-ink-subtle">{e.use}</td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-3">
-                            <Link href={`/products/excipients/${toSlug(e.name)}`}
-                              className="text-xs font-bold text-ink-subtle hover:text-primary transition-colors">Details</Link>
-                            <Link href={`/enquiry?product=${encodeURIComponent(e.name)}`}
-                              className="text-xs font-bold text-primary hover:text-primary-dark transition-colors">Enquire →</Link>
-                          </div>
+                        <td className="px-6 py-4 text-xs text-ink-subtle">{e.use}</td><td className="px-6 py-4 text-right">
+                          <svg className="w-4 h-4 inline-block text-ink-subtle opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                          </svg>
                         </td>
                       </motion.tr>
                     ))}

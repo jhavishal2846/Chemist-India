@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { toSlug } from '@/lib/products/utils'
 import { herbalListing as extracts } from '@/lib/products/listings'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 const PER_PAGE = 15
 const listVariants = { hidden: {}, show: { transition: { staggerChildren: 0.04 } }, exit: {} }
@@ -26,6 +27,7 @@ export default function HerbalExtractsPage() {
   useEffect(() => { setPage(1) }, [search])
   const paged = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)
 
+  const router = useRouter()
   return (
     <>
       <PageHeader
@@ -43,7 +45,7 @@ export default function HerbalExtractsPage() {
             </svg>
             <input type="search" placeholder="Search by name or CAS…" value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 rounded-xl border border-border bg-surface text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" />
+              className="w-full pl-11 pr-4 py-3 rounded-xl border border-border bg-surface text-sm text-ink placeholder:text-ink-subtle focus:outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/10 transition-[border-color,box-shadow] duration-150" />
           </div>
           <div className="bg-surface border border-border rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
@@ -60,19 +62,22 @@ export default function HerbalExtractsPage() {
                 <AnimatePresence mode="wait">
                   <motion.tbody key={page} variants={listVariants} initial="hidden" animate="show" exit="exit">
                     {paged.map(e => (
-                      <motion.tr key={e.cas + e.name} variants={rowVariants} whileHover={{ backgroundColor: 'rgba(0,180,216,0.04)' }}
-                        className="border-b border-border last:border-0">
+                      <motion.tr
+                        key={e.cas + e.name}
+                        variants={rowVariants}
+                        onClick={() => router.push(`/products/herbal-extracts/${toSlug(e.name)}`)}
+                        onKeyDown={(ev) => { if (ev.key === 'Enter') router.push(`/products/herbal-extracts/${toSlug(e.name)}`) }}
+                        tabIndex={0}
+                        role="link"
+                        className="border-b border-border last:border-0 cursor-pointer group transition-colors hover:bg-[rgba(90,163,68,0.06)]"
+                      >
                         <td className="px-6 py-4 font-medium text-ink">{e.name}</td>
                         <td className="px-6 py-4 text-xs text-ink-muted">{e.standardisation}</td>
                         <td className="px-6 py-4 font-mono text-xs text-ink-subtle">{e.cas}</td>
-                        <td className="px-6 py-4"><span className="px-2.5 py-0.5 text-xs font-semibold bg-primary-xlight text-primary rounded-full">{e.category}</span></td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-3">
-                            <Link href={`/products/herbal-extracts/${toSlug(e.name)}`}
-                              className="text-xs font-bold text-ink-subtle hover:text-primary transition-colors">Details</Link>
-                            <Link href={`/enquiry?product=${encodeURIComponent(e.name)}`}
-                              className="text-xs font-bold text-primary hover:text-primary-dark transition-colors">Enquire →</Link>
-                          </div>
+                        <td className="px-6 py-4"><span className="px-2.5 py-0.5 text-xs font-semibold bg-primary-xlight text-primary rounded-full">{e.category}</span></td><td className="px-6 py-4 text-right">
+                          <svg className="w-4 h-4 inline-block text-ink-subtle opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                          </svg>
                         </td>
                       </motion.tr>
                     ))}

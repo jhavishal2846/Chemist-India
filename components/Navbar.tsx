@@ -86,44 +86,95 @@ function HexIcon({ className }: { className?: string }) {
 
 /* ─── Mega Menu ──────────────────────────────────────────────────────────── */
 
-function MegaMenu({ sections, open }: { sections: NavSection[]; open: boolean }) {
+/**
+ * Renders the section content for a given mega menu. Pure presentation;
+ * positioning + open/close lifecycle live in <SharedMegaMenu>.
+ */
+function MegaContent({ sections }: { sections: NavSection[] }) {
+  return (
+    <div className={`grid gap-8 ${sections.length === 3 ? 'grid-cols-3' : sections.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+      {sections.map((sec) => (
+        <div key={sec.heading}>
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-cyan">
+            {sec.heading}
+          </p>
+          <ul className="space-y-0.5">
+            {sec.links.map((lnk) => (
+              <li key={lnk.href}>
+                <Link
+                  href={lnk.href}
+                  className="group flex flex-col px-2.5 py-2 rounded-xl hover:bg-primary-xlight transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-cyan"
+                >
+                  <span className="text-sm font-semibold text-ink group-hover:text-primary transition-colors duration-150">
+                    {lnk.label}
+                  </span>
+                  {lnk.desc && (
+                    <span className="text-xs text-ink-subtle mt-0.5">{lnk.desc}</span>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/**
+ * Single mega-menu dropdown shared across all triggers. Stays mounted while
+ * any menu is open so switching between triggers slides the panel rather
+ * than unmounting/remounting. Position is driven by `centerX` (the x-coord
+ * of the active trigger's center, in nav-relative pixels).
+ */
+function SharedMegaMenu({
+  activeItem,
+  centerX,
+  onMouseEnter,
+  onMouseLeave,
+}: {
+  activeItem: (NavItem & { mega: true }) | null
+  centerX:    number
+  onMouseEnter: () => void
+  onMouseLeave: () => void
+}) {
+  const widthClass =
+    !activeItem ? 'min-w-[280px]' :
+    activeItem.sections.length === 3 ? 'min-w-[640px]' :
+    activeItem.sections.length === 2 ? 'min-w-[440px]' : 'min-w-[280px]'
+
   return (
     <AnimatePresence>
-      {open && (
+      {activeItem && (
         <motion.div
-          initial={{ opacity: 0, y: -10, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0,   scale: 1,    transition: { duration: 0.22, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] } }}
-          exit={{    opacity: 0, y: -10, scale: 0.97, transition: { duration: 0.15, ease: [0.7, 0, 0.84, 0] } }}
-          className={`absolute top-full left-1/2 -translate-x-1/2 mt-3 rounded-2xl border border-border bg-surface/98 backdrop-blur-xl shadow-xl p-6 z-50 w-max ${
-            sections.length === 3 ? 'min-w-[640px]' : sections.length === 2 ? 'min-w-[440px]' : 'min-w-[280px]'
-          }`}
+          key="shared-mega"  /* stable key — stays mounted across menu switches */
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
+          initial={{ opacity: 0, y: -8 }}
+          animate={{
+            opacity: 1,
+            y: 0,
+            x: centerX,
+            transition: {
+              x:       { type: 'spring', stiffness: 600, damping: 42, mass: 0.6 },
+              opacity: { duration: 0.16, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
+              y:       { duration: 0.2,  ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
+            },
+          }}
+          exit={{ opacity: 0, y: -8, transition: { duration: 0.14 } }}
+          style={{ left: 0, translateX: '-50%' }}
+          className={`absolute top-full mt-3 rounded-2xl border border-border bg-surface/98 backdrop-blur-xl shadow-xl p-6 z-50 w-max ${widthClass}`}
         >
-          <div className={`grid gap-8 ${sections.length === 3 ? 'grid-cols-3' : sections.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-            {sections.map((sec) => (
-              <div key={sec.heading}>
-                <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-cyan">
-                  {sec.heading}
-                </p>
-                <ul className="space-y-0.5">
-                  {sec.links.map((lnk) => (
-                    <li key={lnk.href}>
-                      <Link
-                        href={lnk.href}
-                        className="group flex flex-col px-2.5 py-2 rounded-xl hover:bg-primary-xlight transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-cyan"
-                      >
-                        <span className="text-sm font-semibold text-ink group-hover:text-primary transition-colors duration-150">
-                          {lnk.label}
-                        </span>
-                        {lnk.desc && (
-                          <span className="text-xs text-ink-subtle mt-0.5">{lnk.desc}</span>
-                        )}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeItem.label}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, transition: { duration: 0.14 } }}
+              exit={{    opacity: 0, transition: { duration: 0.10 } }}
+            >
+              <MegaContent sections={activeItem.sections} />
+            </motion.div>
+          </AnimatePresence>
         </motion.div>
       )}
     </AnimatePresence>
@@ -275,6 +326,44 @@ export default function Navbar() {
   const [scrolled, setScrolled]   = useState(false)
   const hoverRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Refs to each mega-menu trigger so we can compute the dropdown's x-position.
+  const triggerRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const navRef      = useRef<HTMLElement | null>(null)
+  const [centerX, setCenterX] = useState(0)
+
+  // Compute the trigger's center x (in nav-relative pixels) for a given label.
+  const computeCenter = (label: string) => {
+    const t = triggerRefs.current[label]
+    const n = navRef.current
+    if (!t || !n) return null
+    const tRect = t.getBoundingClientRect()
+    const nRect = n.getBoundingClientRect()
+    return tRect.left - nRect.left + tRect.width / 2
+  }
+
+  // Recompute on layout shifts (resize, scrolled state change) so the dropdown
+  // tracks the active trigger when the navbar repaints.
+  useEffect(() => {
+    if (!open) return
+    const c = computeCenter(open); if (c != null) setCenterX(c)
+    const onResize = () => { const c = computeCenter(open); if (c != null) setCenterX(c) }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [open, scrolled])
+
+  const activeItem = open
+    ? (navItems.find(i => 'mega' in i && i.mega && i.label === open) as (NavItem & { mega: true }) | undefined) ?? null
+    : null
+
+  const openMenu = (label: string) => {
+    if (hoverRef.current) clearTimeout(hoverRef.current)
+    // Compute synchronously so the dropdown spawns in the right place on
+    // first hover (no slide-from-left flash).
+    const c = computeCenter(label); if (c != null) setCenterX(c)
+    setOpen(label)
+  }
+  const closeSoon = () => { hoverRef.current = setTimeout(() => setOpen(null), 130) }
+
   useEffect(() => {
     const threshold = pathname === '/' ? window.innerHeight * 0.85 : 64
     const check = () => setScrolled(window.scrollY > threshold)
@@ -325,14 +414,18 @@ export default function Navbar() {
               </Link>
 
               {/* Desktop Nav */}
-              <nav className="hidden lg:flex items-center gap-7" aria-label="Main navigation">
+              <nav
+                ref={navRef}
+                className="hidden lg:flex relative items-center gap-7"
+                aria-label="Main navigation"
+                onMouseLeave={closeSoon}
+              >
                 {navItems.map((item) =>
                   item.mega ? (
                     <div
                       key={item.label}
-                      className="relative"
-                      onMouseEnter={() => { if (hoverRef.current) clearTimeout(hoverRef.current); setOpen(item.label) }}
-                      onMouseLeave={() => { hoverRef.current = setTimeout(() => setOpen(null), 130) }}
+                      ref={(el) => { triggerRefs.current[item.label] = el }}
+                      onMouseEnter={() => openMenu(item.label)}
                     >
                       <button
                         aria-expanded={open === item.label}
@@ -351,12 +444,12 @@ export default function Navbar() {
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                         </motion.svg>
                       </button>
-                      <MegaMenu sections={item.sections} open={open === item.label} />
                     </div>
                   ) : (
                     <Link
                       key={item.href}
                       href={item.href!}
+                      onMouseEnter={() => { if (hoverRef.current) clearTimeout(hoverRef.current); setOpen(null) }}
                       className={`relative text-sm font-semibold transition-colors duration-150 ${
                         !scrolled ? 'text-white/80 hover:text-white' : 'text-ink/80 hover:text-ink'
                       } ${pathname === item.href ? (!scrolled ? 'text-cyan' : 'text-primary') : ''}`}
@@ -371,6 +464,14 @@ export default function Navbar() {
                     </Link>
                   )
                 )}
+
+                {/* Shared mega-menu dropdown — slides between trigger positions */}
+                <SharedMegaMenu
+                  activeItem={activeItem}
+                  centerX={centerX}
+                  onMouseEnter={() => { if (hoverRef.current) clearTimeout(hoverRef.current) }}
+                  onMouseLeave={closeSoon}
+                />
               </nav>
 
               {/* Desktop CTAs */}
