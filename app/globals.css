@@ -134,11 +134,17 @@ body {
 }
 .skip-link:focus { top: 0; }
 
-/* Focus ring */
+/* Global focus ring for non-form elements (buttons & links). Form controls
+   define their own focus styles inline so we don't double up. */
 :focus-visible {
   outline: 2px solid var(--color-cyan);
   outline-offset: 3px;
   border-radius: var(--radius-sm);
+}
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
 }
 
 /* Selection */

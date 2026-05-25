@@ -5,6 +5,7 @@ import Pagination from '@/components/Pagination'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { toSlug } from '@/lib/products/utils'
 import { apiListing as apis } from '@/lib/products/listings'
 
@@ -38,6 +39,7 @@ export default function APIsPage() {
 
   const paged = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)
 
+  const router = useRouter()
   return (
     <>
       <PageHeader
@@ -60,7 +62,7 @@ export default function APIsPage() {
               placeholder="Search by name or CAS…"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 rounded-xl border border-border bg-surface text-sm text-ink placeholder:text-ink-subtle focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+              className="w-full pl-11 pr-4 py-3 rounded-xl border border-border bg-surface text-sm text-ink placeholder:text-ink-subtle focus:outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/10 transition-[border-color,box-shadow] duration-150"
             />
           </div>
 
@@ -107,8 +109,11 @@ export default function APIsPage() {
                       <motion.tr
                         key={api.cas + api.name}
                         variants={rowVariants}
-                        whileHover={{ backgroundColor: 'rgba(0,180,216,0.04)' }}
-                        className="border-b border-border last:border-0 cursor-default"
+                        onClick={() => router.push(`/products/apis/${toSlug(api.name)}`)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') router.push(`/products/apis/${toSlug(api.name)}`) }}
+                        tabIndex={0}
+                        role="link"
+                        className="border-b border-border last:border-0 cursor-pointer group transition-colors hover:bg-[rgba(90,163,68,0.06)]"
                       >
                         <td className="px-6 py-4">
                           <Link href={`/products/apis/${toSlug(api.name)}`}
@@ -122,16 +127,9 @@ export default function APIsPage() {
                         </td>
                         <td className="px-6 py-4 text-xs text-ink-subtle">{api.category}</td>
                         <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-3">
-                            <Link href={`/products/apis/${toSlug(api.name)}`}
-                              className="text-xs font-bold text-ink-subtle hover:text-primary transition-colors">
-                              Details
-                            </Link>
-                            <Link href={`/enquiry?product=${encodeURIComponent(api.name)}`}
-                              className="text-xs font-bold text-primary hover:text-primary-dark transition-colors">
-                              Enquire →
-                            </Link>
-                          </div>
+                          <svg className="w-4 h-4 inline-block text-ink-subtle opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                          </svg>
                         </td>
                       </motion.tr>
                     ))}
