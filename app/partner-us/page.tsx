@@ -52,15 +52,36 @@ export default function PartnerUsPage() {
   const [form, setForm] = useState({
     name: '', company: '', email: '', phone: '', country: '', partnerType: '', message: '',
   })
+  const [website, setWebsite] = useState('') // honeypot — must stay empty
   const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSubmitted(true)
+    if (submitting) return
+    setSubmitting(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/partner', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, website }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data?.error || 'Submission failed. Please try again.')
+      }
+      setSubmitted(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Submission failed. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -183,9 +204,28 @@ export default function PartnerUsPage() {
                       className="w-full px-4 py-3 rounded-xl border border-border text-sm text-ink placeholder:text-ink-subtle focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none" />
                   </div>
 
-                  <button type="submit"
-                    className="w-full py-4 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary-dark active:scale-[0.99] transition-all duration-150">
-                    Submit Partnership Enquiry
+                  {/* Honeypot — visually hidden but in the DOM. Real users never fill this. */}
+                  <div aria-hidden="true" style={{ position: 'absolute', left: '-10000px', top: 'auto', width: 1, height: 1, overflow: 'hidden' }}>
+                    <label htmlFor="partner-website">Website</label>
+                    <input type="text" id="partner-website" name="website" tabIndex={-1} autoComplete="off"
+                      value={website} onChange={e => setWebsite(e.target.value)} />
+                  </div>
+
+                  {error && (
+                    <div role="alert" className="px-4 py-3 rounded-xl bg-error/5 border border-error/30 text-sm text-error">
+                      {error}
+                    </div>
+                  )}
+
+                  <button type="submit" disabled={submitting}
+                    className="w-full py-4 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary-dark active:scale-[0.99] transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2">
+                    {submitting && (
+                      <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.25" />
+                        <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                      </svg>
+                    )}
+                    {submitting ? 'Submitting…' : 'Submit Partnership Enquiry'}
                   </button>
                 </form>
               )}

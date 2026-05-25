@@ -52,7 +52,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" dir="ltr" className={`h-full scroll-smooth antialiased ${figtree.variable} ${notoSans.variable}`}>
-      <body className="flex min-h-dvh flex-col bg-bg text-ink font-sans">
+      <body suppressHydrationWarning className="flex min-h-dvh flex-col bg-bg text-ink font-sans">
         <Navbar />
         <main id="main-content" className="flex-1 flex flex-col" tabIndex={-1}>
           {children}
