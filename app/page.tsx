@@ -676,39 +676,11 @@ function WhyUsSection() {
 const offices = [
   {
     country: 'India',
-    code: 'IN',
-    city: 'Mumbai',
-    desc: 'Head Office & R&D Centre',
-    address: 'Lower Parel, Mumbai — 400 013',
-    phone: '+91 22 4000 5000',
-    email: 'india@chemicalindia.com',
-  },
-  {
-    country: 'China',
-    code: 'CN',
-    city: 'Beijing',
-    desc: 'Asia-Pacific Sourcing Hub',
-    address: 'Zhongguancun, Beijing — 100 080',
-    phone: '+86 10 6200 0000',
-    email: 'china@chemicalindia.com',
-  },
-  {
-    country: 'United Kingdom',
-    code: 'UK',
-    city: 'London',
-    desc: 'Europe & Middle East Office',
-    address: 'Canary Wharf, London — E14 5AB',
-    phone: '+44 20 7000 0000',
-    email: 'uk@chemicalindia.com',
-  },
-  {
-    country: 'USA',
-    code: 'US',
-    city: 'New Jersey',
-    desc: 'Americas Regional Office',
-    address: 'Edison, New Jersey — NJ 08837',
-    phone: '+1 732 000 0000',
-    email: 'usa@chemicalindia.com',
+    code:    'IN',
+    city:    'Chandigarh',
+    desc:    'Registered Office',
+    address: '1358 FF, Sector 22 B, Chandigarh — 160022',
+    cin:     'U74999CH2021PLC043555',
   },
 ]
 
@@ -725,17 +697,17 @@ function GlobalPresenceSection() {
         >
           <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-xlight text-primary text-xs font-bold tracking-widest uppercase mb-4">
             <span className="w-1.5 h-1.5 rounded-full bg-cyan" />
-            Global Presence
+            Where to Find Us
           </span>
           <h2 className="font-display font-bold text-4xl lg:text-5xl text-ink mb-4">
-            Four Countries. One Standard.
+            Headquartered in Chandigarh
           </h2>
           <p className="text-ink-muted text-lg">
-            Regional offices ensure local expertise and faster response times across all major markets.
+            Serving customers across India and overseas from our registered office.
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="max-w-md mx-auto">
           {offices.map((office, i) => (
             <motion.div
               key={office.country}
@@ -751,9 +723,9 @@ function GlobalPresenceSection() {
               <h3 className="font-display font-bold text-ink text-lg mb-0.5">{office.city}</h3>
               <p className="text-xs text-cyan font-semibold mb-3">{office.desc}</p>
               <p className="text-xs text-ink-subtle leading-relaxed mb-3">{office.address}</p>
-              <div className="space-y-1">
-                <a href={`tel:${office.phone}`} className="block text-xs text-ink-muted hover:text-primary transition-colors">{office.phone}</a>
-                <a href={`mailto:${office.email}`} className="block text-xs text-primary font-medium hover:text-primary-dark transition-colors">{office.email}</a>
+              <div className="pt-3 border-t border-border">
+                <p className="text-[10px] uppercase tracking-widest font-semibold text-ink-subtle mb-0.5">CIN</p>
+                <p className="text-xs font-mono text-ink-muted">{office.cin}</p>
               </div>
             </motion.div>
           ))}

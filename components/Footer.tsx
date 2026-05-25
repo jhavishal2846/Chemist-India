@@ -122,12 +122,16 @@ export default function Footer() {
               />
             </Link>
             <p className="text-sm leading-relaxed text-white/50 mb-5 max-w-xs">
-              Precision chemistry, global trust. India's leading supplier of APIs, industrial chemicals, nutraceuticals, herbal extracts, excipients, dyes and more.
+              Precision chemistry, global trust. Suppliers of APIs, industrial chemicals, nutraceuticals, herbal extracts, excipients, dyes and more.
             </p>
-            <address className="text-xs text-white/40 not-italic leading-relaxed mb-5">
-              Mumbai, India | Beijing, China<br />
-              London, UK | New York, USA
+            <address className="text-xs text-white/45 not-italic leading-relaxed mb-3">
+              <span className="block font-semibold text-white/70 mb-1">Chemist India Limited</span>
+              1358 FF, Sector 22 B<br />
+              Chandigarh — 160022, India
             </address>
+            <p className="text-[11px] text-white/35 font-mono tracking-wide mb-5">
+              CIN: U74999CH2021PLC043555
+            </p>
             <div className="flex items-center gap-2.5">
               {socials.map((s) => (
                 <a
