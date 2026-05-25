@@ -69,17 +69,17 @@ export default function AboutUsPage() {
                 Who We Are
               </span>
               <h2 className="font-display font-bold text-4xl text-ink mb-6 text-balance leading-tight">
-                A Global Chemist Supplier Built on Science and Trust
+                A Chemist Supplier Built on Science and Trust
               </h2>
               <div className="space-y-4 text-ink-muted leading-relaxed">
                 <p>
-                  Chemist India was founded in 1999 with a singular mission: to make high-quality pharmaceutical and industrial chemicals accessible to manufacturers across the globe. What began as a domestic Indian operation has grown into an international trading company with offices in Mumbai, Beijing, London, and New Jersey.
+                  Chemist India Limited is headquartered in Chandigarh and serves manufacturers across India and overseas with a single mission: making high-quality pharmaceutical and industrial chemicals accessible, traceable, and reliably documented.
                 </p>
                 <p>
                   We source, quality-test, and supply a comprehensive portfolio of Active Pharmaceutical Ingredients (APIs), intermediates, industrial chemicals, nutraceuticals, herbal extracts, excipients, dyes, food chemicals, impurities, and pellets — backed by full regulatory documentation and technical support.
                 </p>
                 <p>
-                  Our customer base spans over 50 countries and includes pharmaceutical manufacturers, nutraceutical brands, research institutions, and industrial processors. Every product we supply is tested to pharmacopoeial or equivalent standards and supported by CoA, MSDS, and regulatory documentation.
+                  Our customers include pharmaceutical manufacturers, nutraceutical brands, research institutions, and industrial processors. Every product we supply is tested to pharmacopoeial or equivalent standards and accompanied by COA, MSDS, and applicable regulatory documentation.
                 </p>
               </div>
             </FadeIn>
