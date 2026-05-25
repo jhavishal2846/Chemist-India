@@ -7,7 +7,10 @@ import { useState } from 'react'
 export default function EnquiryPage() {
   const [rows, setRows] = useState([{ product: '', cas: '', qty: '', unit: 'kg', grade: '' }])
   const [form, setForm] = useState({ name: '', company: '', email: '', phone: '', country: '', remarks: '' })
+  const [website, setWebsite] = useState('') // honeypot — must stay empty
   const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const addRow = () => setRows(prev => [...prev, { product: '', cas: '', qty: '', unit: 'kg', grade: '' }])
   const removeRow = (i: number) => setRows(prev => prev.filter((_, idx) => idx !== i))
@@ -17,9 +20,34 @@ export default function EnquiryPage() {
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const resetAll = () => {
+    setRows([{ product: '', cas: '', qty: '', unit: 'kg', grade: '' }])
+    setForm({ name: '', company: '', email: '', phone: '', country: '', remarks: '' })
+    setSubmitted(false)
+    setError(null)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSubmitted(true)
+    if (submitting) return
+    setSubmitting(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/enquiry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, rows, website }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data?.error || 'Submission failed. Please try again.')
+      }
+      setSubmitted(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Submission failed. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -49,7 +77,7 @@ export default function EnquiryPage() {
               <p className="text-ink-muted text-lg max-w-md mx-auto mb-8">
                 Thank you for your enquiry. Our team will review your requirements and respond with a detailed quotation within 24 business hours.
               </p>
-              <button onClick={() => setSubmitted(false)}
+              <button onClick={resetAll}
                 className="px-8 py-3 rounded-full bg-primary text-white font-bold text-sm hover:bg-primary-dark transition-colors">
                 Submit Another Enquiry
               </button>
@@ -145,10 +173,29 @@ export default function EnquiryPage() {
                   className="w-full px-4 py-3 rounded-xl border border-border text-sm text-ink placeholder:text-ink-subtle focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none" />
               </div>
 
+              {/* Honeypot — visually hidden but in the DOM. Real users never fill this. */}
+              <div aria-hidden="true" style={{ position: 'absolute', left: '-10000px', top: 'auto', width: 1, height: 1, overflow: 'hidden' }}>
+                <label htmlFor="website">Website</label>
+                <input type="text" id="website" name="website" tabIndex={-1} autoComplete="off"
+                  value={website} onChange={e => setWebsite(e.target.value)} />
+              </div>
+
+              {error && (
+                <div role="alert" className="mb-5 px-4 py-3 rounded-xl bg-error/5 border border-error/30 text-sm text-error">
+                  {error}
+                </div>
+              )}
+
               <div className="flex flex-col sm:flex-row items-center gap-4">
-                <button type="submit"
-                  className="w-full sm:w-auto px-10 py-4 rounded-xl bg-cta text-white font-bold text-sm hover:bg-cta-dark active:scale-[0.99] transition-all duration-150">
-                  Submit Enquiry →
+                <button type="submit" disabled={submitting}
+                  className="w-full sm:w-auto px-10 py-4 rounded-xl bg-cta text-white font-bold text-sm hover:bg-cta-dark active:scale-[0.99] transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2">
+                  {submitting && (
+                    <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.25" />
+                      <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                    </svg>
+                  )}
+                  {submitting ? 'Submitting…' : 'Submit Enquiry →'}
                 </button>
                 <p className="text-xs text-ink-subtle text-center sm:text-left">
                   We respond within 24 business hours. Your data is kept strictly confidential.
