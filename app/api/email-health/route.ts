@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { getTransporter, MAIL_FROM, MAIL_TO_INTERNAL } from '@/lib/email/transporter'
-import { getQueue } from '@/lib/email/queue'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -18,12 +17,8 @@ function isAllowed(): boolean {
   return process.env.EMAIL_HEALTH_ENABLED === '1'
 }
 
-export async function GET() {
-  if (!isAllowed()) {
-    return NextResponse.json({ ok: false, error: 'disabled' }, { status: 404 })
-  }
-
-  const config = {
+function snapshotConfig() {
+  return {
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT ?? 587),
     user: process.env.SMTP_USER,
@@ -31,18 +26,17 @@ export async function GET() {
     passLen: process.env.SMTP_PASS?.length ?? 0,
     from: MAIL_FROM,
     to: MAIL_TO_INTERNAL,
-    poolMax: Number(process.env.SMTP_POOL_MAX ?? 4),
-    queueConcurrency: Number(process.env.MAIL_QUEUE_CONCURRENCY ?? 3),
+  }
+}
+
+export async function GET() {
+  if (!isAllowed()) {
+    return NextResponse.json({ ok: false, error: 'disabled' }, { status: 404 })
   }
 
   try {
     const ok = await getTransporter().verify()
-    return NextResponse.json({
-      ok,
-      verified: ok,
-      config,
-      queue: getQueue().stats(),
-    })
+    return NextResponse.json({ ok, verified: ok, config: snapshotConfig() })
   } catch (err) {
     const e = err as {
       message?: string; code?: string; command?: string;
@@ -50,8 +44,7 @@ export async function GET() {
     }
     return NextResponse.json({
       ok: false,
-      config,
-      queue: getQueue().stats(),
+      config: snapshotConfig(),
       error: {
         message: e?.message,
         code: e?.code,
