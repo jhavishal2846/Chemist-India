@@ -3,7 +3,6 @@ import './globals.css'
 import { Figtree, Noto_Sans } from 'next/font/google'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
-import PageTransition from '@/components/PageTransition'
 
 const figtree = Figtree({
   subsets: ['latin'],
@@ -55,11 +54,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" dir="ltr" className={`h-full scroll-smooth antialiased ${figtree.variable} ${notoSans.variable}`}>
       <body className="flex min-h-dvh flex-col bg-bg text-ink font-sans">
         <Navbar />
-        <PageTransition>
-          <main id="main-content" className="flex-1 flex flex-col" tabIndex={-1}>
-            {children}
-          </main>
-        </PageTransition>
+        <main id="main-content" className="flex-1 flex flex-col" tabIndex={-1}>
+          {children}
+        </main>
         <Footer />
       </body>
     </html>
