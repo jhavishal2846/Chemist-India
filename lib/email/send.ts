@@ -3,21 +3,21 @@ import type SMTPTransport from 'nodemailer/lib/smtp-transport'
 import { getTransporter } from './transporter'
 
 /**
- * Vercel-friendly email sender. Called from inside `after(() => …)` in
- * route handlers — the HTTP response is already on the wire when this runs,
- * so the user never waits for SMTP.
+ * Synchronous email sender called inline from route handlers. The HTTP
+ * response is held until this resolves — callers depend on the thrown
+ * error to surface failures back to the user.
  *
  * Retries on transient SMTP failures (network errors, 4xx, and rate-limit
  * 5xx responses like Mailtrap's "Too many emails per second"). Permanent
- * 5xx (auth, bad recipient, etc.) drop on first failure — retrying just
+ * 5xx (auth, bad recipient, etc.) abort on first failure — retrying just
  * gets you greylisted.
  *
- * `after()` keeps the serverless function alive until this resolves, so
- * total backoff time stays under the function timeout (Hobby ~10s,
- * Pro ~60s). MAX_ATTEMPTS=3 with caps gives us at most ~5s of waiting.
+ * Route handlers set `maxDuration = 60` on Vercel. MAX_ATTEMPTS=5 with
+ * exponential backoff capped at 2s gives us at most ~12s of waiting,
+ * well inside the budget.
  */
 
-const MAX_ATTEMPTS = 3
+const MAX_ATTEMPTS = 5
 const BASE_BACKOFF_MS = 400
 
 function isPermanent(err: unknown): boolean {
@@ -80,10 +80,13 @@ export async function sendWithRetry(
 
       if (giveUp) {
         console.error(
-          `[${label}] dropped attempt=${attempt} permanent=${permanent} ` +
+          `[${label}] failed attempt=${attempt} permanent=${permanent} ` +
           `to=${to} :: ${detail}`,
         )
-        return
+        // Throw so the caller can surface the failure to the user.
+        // Previously this swallowed the error and returned, which silently
+        // dropped failed sends — defeating any "must succeed" guarantee.
+        throw err instanceof Error ? err : new Error(detail)
       }
 
       const backoff = Math.min(2_000, BASE_BACKOFF_MS * 2 ** (attempt - 1))

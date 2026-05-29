@@ -27,7 +27,7 @@ export default function ContactUsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (submitting) return
-    setSubmitting(true)
+    setSubmitting(true)   
     setError(null)
     try {
       const res = await fetch('/api/contact', {
