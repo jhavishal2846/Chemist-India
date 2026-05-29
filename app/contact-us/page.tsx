@@ -9,7 +9,7 @@ const contactReasons = [
   'Technical Support',
   'Quality Documentation (COA, MSDS)',
   'Regulatory Affairs',
-  'Partnership / Distribution',
+  'Partnership / Distribution',   
   'Logistics & Shipping',
   'Other',
 ]
