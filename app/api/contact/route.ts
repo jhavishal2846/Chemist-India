@@ -1,5 +1,4 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { after } from 'next/server'
 import { checkRate } from '@/lib/email/rate-limit'
 import { sendWithRetry } from '@/lib/email/send'
 import { MAIL_FROM, MAIL_TO_INTERNAL } from '@/lib/email/transporter'
@@ -16,6 +15,7 @@ import {
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60   // Vercel: allow up to 60s for SMTP sends
 
 const MAX_BODY_BYTES = 16 * 1024
 const MAX_STR = 500
@@ -95,30 +95,50 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  after(async () => {
-    await Promise.all([
-      sendWithRetry({
-        from: MAIL_FROM,
-        to: MAIL_TO_INTERNAL,
-        replyTo: `"${name}" <${email}>`,
-        subject: contactInternalSubject(payload),
-        text: contactInternalText(payload),
-        html: contactInternalHtml(payload),
-        attachments: [logo],
-        headers: { 'X-Chemist-India-Form': 'contact' },
-      }, 'contact-internal'),
-      sendWithRetry({
-        from: MAIL_FROM,
-        to: `"${name}" <${email}>`,
-        replyTo: MAIL_TO_INTERNAL,
-        subject: contactAckSubject(payload),
-        text: contactAckText(payload),
-        html: contactAckHtml(payload),
-        attachments: [logo],
-        headers: { 'X-Chemist-India-Form': 'contact-ack' },
-      }, 'contact-ack'),
-    ])
-  })
+  // Both emails MUST arrive — fail the request loudly if either drops.
+  // Sent in parallel via allSettled so we can report which side failed
+  // (helps debugging without aborting the other send mid-flight).
+  const [internalResult, ackResult] = await Promise.allSettled([
+    sendWithRetry({
+      from: MAIL_FROM,
+      to: MAIL_TO_INTERNAL,
+      replyTo: `"${name}" <${email}>`,
+      subject: contactInternalSubject(payload),
+      text: contactInternalText(payload),
+      html: contactInternalHtml(payload),
+      attachments: [logo],
+      headers: { 'X-Chemist-India-Form': 'contact' },
+    }, 'contact-internal'),
+    sendWithRetry({
+      from: MAIL_FROM,
+      to: `"${name}" <${email}>`,
+      replyTo: MAIL_TO_INTERNAL,
+      subject: contactAckSubject(payload),
+      text: contactAckText(payload),
+      html: contactAckHtml(payload),
+      attachments: [logo],
+      headers: { 'X-Chemist-India-Form': 'contact-ack' },
+    }, 'contact-ack'),
+  ])
 
-  return NextResponse.json({ ok: true, queued: true }, { status: 202 })
+  // Internal lead email is the priority — if it fails, the user must know
+  // and retry. Customer ack is best-effort: if delivery to their inbox fails
+  // (typo, full mailbox, spam reject) we don't want them to resubmit and
+  // create a duplicate lead, so we just log it.
+  if (internalResult.status === 'rejected') {
+    console.error('[contact] internal send failed', internalResult.reason)
+    if (ackResult.status === 'rejected') {
+      console.error('[contact] ack send also failed', ackResult.reason)
+    }
+    return NextResponse.json(
+      { ok: false, error: `We couldn't deliver your message. Please retry, or email us directly at ${MAIL_TO_INTERNAL}.` },
+      { status: 502 },
+    )
+  }
+
+  if (ackResult.status === 'rejected') {
+    console.error('[contact] ack send failed (non-fatal — lead was received)', ackResult.reason)
+  }
+
+  return NextResponse.json({ ok: true, sent: true }, { status: 200 })
 }

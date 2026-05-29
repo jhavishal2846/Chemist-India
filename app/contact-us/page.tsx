@@ -9,7 +9,7 @@ const contactReasons = [
   'Technical Support',
   'Quality Documentation (COA, MSDS)',
   'Regulatory Affairs',
-  'Partnership / Distribution',
+  'Partnership / Distribution',   
   'Logistics & Shipping',
   'Other',
 ]
@@ -27,7 +27,7 @@ export default function ContactUsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (submitting) return
-    setSubmitting(true)
+    setSubmitting(true)   
     setError(null)
     try {
       const res = await fetch('/api/contact', {
